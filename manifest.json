@@ -1,0 +1,54 @@
+{
+  "manifest_version": 3,
+  "name": "AI财经助手 - 财报速读",
+  "version": "1.0.0",
+  "description": "一键AI分析财经新闻：智能摘要、情绪分析、关键指标提取。支持东方财富、新浪财经、雪球等主流财经网站。",
+  "permissions": ["activeTab", "storage", "scripting"],
+  "host_permissions": [
+    "https://*.eastmoney.com/*",
+    "https://*.sina.com.cn/*",
+    "https://*.xueqiu.com/*",
+    "https://*.10jqka.com.cn/*",
+    "https://*.cls.cn.com/*",
+    "https://*.wallstreetcn.com/*",
+    "https://*.finance.sina.com.cn/*",
+    "https://*.caixin.com/*",
+    "https://*.yicai.com/*",
+    "https://*.stcn.com/*"
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.eastmoney.com/*",
+        "https://*.sina.com.cn/*",
+        "https://*.xueqiu.com/*",
+        "https://*.10jqka.com.cn/*",
+        "https://*.cls.cn/*",
+        "https://*.wallstreetcn.com/*",
+        "https://*.caixin.com/*",
+        "https://*.yicai.com/*",
+        "https://*.stcn.com/*"
+      ],
+      "js": ["src/content/content.js"],
+      "css": ["src/styles/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "src/options/options.html"
+}

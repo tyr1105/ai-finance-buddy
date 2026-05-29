@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI财经助手 - 设置</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="options-container">
+    <header>
+      <div class="header-content">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+        <div>
+          <h1>AI财经助手 设置</h1>
+          <p>配置你的AI分析引擎</p>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- API配置 -->
+      <section class="card">
+        <h2>🔑 API 配置</h2>
+        <p class="hint">推荐使用DeepSeek API，性价比最高（约0.001元/次分析）</p>
+
+        <div class="form-group">
+          <label>AI提供商</label>
+          <select id="provider">
+            <option value="deepseek">DeepSeek（推荐）</option>
+            <option value="openai">OpenAI</option>
+            <option value="custom">自定义接口</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="password" id="apiKey" placeholder="sk-..." />
+          <p class="field-hint">你的API Key仅存储在本地浏览器中，不会上传到任何服务器</p>
+        </div>
+
+        <div class="form-group">
+          <label>模型</label>
+          <select id="model">
+            <option value="deepseek-chat">DeepSeek Chat（推荐）</option>
+            <option value="deepseek-reasoner">DeepSeek Reasoner（更强推理）</option>
+            <option value="gpt-4o-mini">GPT-4o Mini</option>
+            <option value="gpt-4o">GPT-4o</option>
+            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="customEndpointGroup" style="display:none">
+          <label>自定义API端点</label>
+          <input type="url" id="customEndpoint" placeholder="https://api.example.com/v1/chat/completions" />
+        </div>
+      </section>
+
+      <!-- Pro版 -->
+      <section class="card">
+        <h2>🚀 Pro 版本</h2>
+        <div class="pro-info">
+          <div class="pro-benefits">
+            <div class="benefit">✅ 无限次分析（免费版每天5次）</div>
+            <div class="benefit">✅ 优先使用更强大的模型</div>
+            <div class="benefit">✅ 历史分析记录</div>
+            <div class="benefit">✅ 导出分析报告</div>
+            <div class="benefit">✅ 自定义分析模板</div>
+          </div>
+          <div class="pro-price">
+            <span class="price">¥9.9</span>/月
+          </div>
+          <button class="pro-btn" id="upgradeBtn">即将上线</button>
+        </div>
+      </section>
+
+      <!-- 使用指南 -->
+      <section class="card">
+        <h2>📖 使用指南</h2>
+        <div class="guide-steps">
+          <div class="step">
+            <span class="step-num">1</span>
+            <div>
+              <h3>配置API Key</h3>
+              <p>在上方选择AI提供商并填入你的API Key。<a href="https://platform.deepseek.com/api_keys" target="_blank">获取DeepSeek Key →</a></p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-num">2</span>
+            <div>
+              <h3>打开财经新闻</h3>
+              <p>访问东方财富、新浪财经、雪球等支持网站的文章页面</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-num">3</span>
+            <div>
+              <h3>点击分析</h3>
+              <p>点击页面右下角的紫色按钮，AI将自动分析文章并生成结构化报告</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 保存 -->
+      <div class="save-area">
+        <button class="save-btn" id="saveBtn">💾 保存设置</button>
+        <span class="save-status" id="saveStatus"></span>
+      </div>
+
+      <footer>
+        <p>AI财经助手 v1.0.0 | 分析结果仅供参考，不构成投资建议</p>
+      </footer>
+    </main>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
+

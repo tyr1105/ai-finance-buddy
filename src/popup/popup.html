@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI财经助手</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+        <div>
+          <h1>AI财经助手</h1>
+          <span class="version">v1.0.0</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="popup-body">
+      <!-- 当前页面状态 -->
+      <div class="status-card" id="pageStatus">
+        <div class="status-icon" id="statusIcon">📄</div>
+        <div class="status-info">
+          <div class="status-title" id="statusTitle">检测页面中...</div>
+          <div class="status-desc" id="statusDesc">请打开财经新闻页面</div>
+        </div>
+      </div>
+
+      <!-- 分析按钮 -->
+      <button class="analyze-btn" id="analyzeBtn" disabled>
+        <span class="btn-text">🔍 分析当前页面</span>
+        <span class="btn-loading" style="display:none">
+          <span class="spinner"></span> 分析中...
+        </span>
+      </button>
+
+      <!-- 用量统计 -->
+      <div class="usage-card">
+        <div class="usage-header">
+          <span>今日用量</span>
+          <span class="usage-badge" id="usageBadge">免费版</span>
+        </div>
+        <div class="usage-bar-container">
+          <div class="usage-bar" id="usageBar" style="width: 0%"></div>
+        </div>
+        <div class="usage-text" id="usageText">0 / 5 次</div>
+      </div>
+
+      <!-- 快捷操作 -->
+      <div class="actions">
+        <button class="action-btn" id="settingsBtn">
+          ⚙️ 设置
+        </button>
+        <button class="action-btn" id="historyBtn">
+          📋 历史记录
+        </button>
+        <button class="action-btn" id="upgradeBtn">
+          🚀 升级Pro
+        </button>
+      </div>
+
+      <!-- 支持的网站 -->
+      <div class="supported-sites">
+        <div class="sites-title">支持网站</div>
+        <div class="sites-list">
+          <span class="site-tag">东方财富</span>
+          <span class="site-tag">新浪财经</span>
+          <span class="site-tag">雪球</span>
+          <span class="site-tag">同花顺</span>
+          <span class="site-tag">财联社</span>
+          <span class="site-tag">华尔街见闻</span>
+          <span class="site-tag">财新</span>
+          <span class="site-tag">第一财经</span>
+          <span class="site-tag">证券时报</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
+
