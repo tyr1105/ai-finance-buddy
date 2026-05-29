@@ -21,7 +21,30 @@ class FinanceAnalyzer {
   setup() {
     this.injectButton();
     this.injectStyles();
+    this.setupKeyboardShortcut();
+    this.setupMessageListener();
     console.log('[AI财经助手] 已加载');
+  }
+
+  // Ctrl+Shift+A 快捷键触发分析
+  setupKeyboardShortcut() {
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+        e.preventDefault();
+        this.analyze();
+      }
+    });
+  }
+
+  // 监听来自popup的消息
+  setupMessageListener() {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.action === 'analyze') {
+        this.analyze();
+        sendResponse({ status: 'ok' });
+      }
+      return true;
+    });
   }
 
   // 注入浮动分析按钮
@@ -293,6 +316,11 @@ class FinanceAnalyzer {
             </ul>
           </div>` : ''}
 
+          <div class="ai-actions" style="display:flex;gap:8px;padding:8px 0;">
+            <button id="ai-copy-report" class="ai-action-btn" style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:#333;">📋 复制报告</button>
+            <button id="ai-export-md" class="ai-action-btn" style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:#333;">📄 导出Markdown</button>
+          </div>
+
           <div class="ai-footer">
             <span class="ai-model">模型: ${this.escapeHtml(data.model || 'AI')}</span>
             <span class="ai-usage">今日剩余: ${data.usage.remaining}次</span>
@@ -303,6 +331,15 @@ class FinanceAnalyzer {
 
     document.body.appendChild(this.panel);
     
+    // 绑定导出/复制按钮事件（仅结果面板）
+    if (type === 'result' && data.analysis) {
+      this._lastResult = data;
+      const copyBtn = document.getElementById('ai-copy-report');
+      const exportBtn = document.getElementById('ai-export-md');
+      if (copyBtn) copyBtn.addEventListener('click', () => this.copyReport());
+      if (exportBtn) exportBtn.addEventListener('click', () => this.exportMarkdown());
+    }
+    
     // 添加关闭按钮的键盘支持
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
@@ -310,6 +347,153 @@ class FinanceAnalyzer {
         if (panel) panel.remove();
       }
     });
+  }
+
+  // 将分析结果格式化为纯文本
+  formatReportAsText() {
+    const data = this._lastResult;
+    if (!data || !data.analysis) return '';
+    const a = data.analysis;
+    const lines = [];
+
+    lines.push('=== AI财经分析报告 ===');
+    lines.push('');
+    lines.push('【核心摘要】');
+    lines.push(a.summary || '无');
+    lines.push('');
+    lines.push(`【市场情绪】 ${a.sentiment || '未知'} (置信度: ${((a.sentiment_score || 0.5) * 100).toFixed(0)}%)`);
+    lines.push('');
+
+    if (a.key_points && a.key_points.length) {
+      lines.push('【关键要点】');
+      a.key_points.forEach((p, i) => lines.push(`  ${i + 1}. ${p}`));
+      lines.push('');
+    }
+
+    if (a.stocks_mentioned && a.stocks_mentioned.length) {
+      lines.push('【相关股票】');
+      a.stocks_mentioned.forEach(s => {
+        lines.push(`  - ${s.name} (${s.code || ''}) ${s.impact || ''}`);
+      });
+      lines.push('');
+    }
+
+    if (a.data_points && a.data_points.length) {
+      lines.push('【关键数据】');
+      a.data_points.forEach(d => lines.push(`  - ${d}`));
+      lines.push('');
+    }
+
+    lines.push('【投资视角】');
+    lines.push(a.investment_thesis || '无建议');
+    lines.push('');
+
+    if (a.risk_factors && a.risk_factors.length) {
+      lines.push('【风险提示】');
+      a.risk_factors.forEach(r => lines.push(`  - ${r}`));
+      lines.push('');
+    }
+
+    lines.push(`模型: ${data.model || 'AI'} | 剩余: ${data.usage?.remaining || '?'}次`);
+    return lines.join('\n');
+  }
+
+  // 复制报告到剪贴板
+  async copyReport() {
+    const text = this.formatReportAsText();
+    if (!text) {
+      this.showToast('没有可复制的报告', 'error');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      this.showToast('报告已复制到剪贴板', 'success');
+    } catch (err) {
+      // 回退方案
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      textarea.remove();
+      this.showToast('报告已复制到剪贴板', 'success');
+    }
+  }
+
+  // 导出为Markdown文件下载
+  exportMarkdown() {
+    const data = this._lastResult;
+    if (!data || !data.analysis) {
+      this.showToast('没有可导出的报告', 'error');
+      return;
+    }
+    const a = data.analysis;
+    const lines = [];
+
+    lines.push('# AI财经分析报告');
+    lines.push('');
+    lines.push('## 核心摘要');
+    lines.push('');
+    lines.push(a.summary || '无');
+    lines.push('');
+    lines.push(`## 市场情绪: ${a.sentiment || '未知'}`);
+    lines.push('');
+    lines.push(`> 置信度: ${((a.sentiment_score || 0.5) * 100).toFixed(0)}%`);
+    lines.push('');
+
+    if (a.key_points && a.key_points.length) {
+      lines.push('## 关键要点');
+      lines.push('');
+      a.key_points.forEach(p => lines.push(`- ${p}`));
+      lines.push('');
+    }
+
+    if (a.stocks_mentioned && a.stocks_mentioned.length) {
+      lines.push('## 相关股票');
+      lines.push('');
+      lines.push('| 股票 | 代码 | 影响 |');
+      lines.push('|------|------|------|');
+      a.stocks_mentioned.forEach(s => {
+        lines.push(`| ${s.name} | ${s.code || '-'} | ${s.impact || '-'} |`);
+      });
+      lines.push('');
+    }
+
+    if (a.data_points && a.data_points.length) {
+      lines.push('## 关键数据');
+      lines.push('');
+      a.data_points.forEach(d => lines.push(`- ${d}`));
+      lines.push('');
+    }
+
+    lines.push('## 投资视角');
+    lines.push('');
+    lines.push(a.investment_thesis || '无建议');
+    lines.push('');
+
+    if (a.risk_factors && a.risk_factors.length) {
+      lines.push('## 风险提示');
+      lines.push('');
+      a.risk_factors.forEach(r => lines.push(`- ${r}`));
+      lines.push('');
+    }
+
+    lines.push('---');
+    lines.push(`*模型: ${data.model || 'AI'} | 剩余: ${data.usage?.remaining || '?'}次*`);
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const title = (data.analysis.title || 'report').replace(/[^\w\u4e00-\u9fa5]/g, '_').substring(0, 50);
+    link.href = url;
+    link.download = `AI分析_${title}.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    this.showToast('Markdown文件已导出', 'success');
   }
 
   // Toast提示

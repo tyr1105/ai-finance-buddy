@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI财经助手 - 一键AI分析财经新闻 Chrome扩展</title>
+<meta name="description" content="AI财经助手是一款Chrome浏览器扩展，支持东方财富、新浪财经、雪球等9大财经网站的AI智能分析，一键获取情绪分析、关联个股、投资视角与风险提示。">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --purple-1:#667eea;--purple-2:#764ba2;--purple-3:#5a67d8;
+  --gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;
+  --gray-600:#4b5563;--gray-700:#374151;--gray-800:#1f2937;--gray-900:#111827;
+  --green:#10b981;--red:#ef4444;--amber:#f59e0b;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.05);
+  --shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);
+  --shadow-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);
+  --shadow-xl:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);
+  --radius:12px;--radius-lg:16px;
+}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:var(--gray-800);line-height:1.6;background:#fff;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+img{max-width:100%;display:block}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+
+/* ── NAV ── */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--gray-200);transition:box-shadow .3s}
+.nav.scrolled{box-shadow:var(--shadow)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+.nav-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.2rem;color:var(--gray-900)}
+.nav-brand .icon{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--purple-1),var(--purple-2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px}
+.nav-links{display:flex;align-items:center;gap:28px;font-size:.9rem;font-weight:500;color:var(--gray-600)}
+.nav-links a:hover{color:var(--purple-1)}
+.nav-cta{background:linear-gradient(135deg,var(--purple-1),var(--purple-2));color:#fff!important;padding:8px 20px;border-radius:8px;font-weight:600;transition:transform .2s,box-shadow .2s}
+.nav-cta:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(102,126,234,.4)}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px}
+.hamburger span{width:24px;height:2px;background:var(--gray-700);border-radius:2px;transition:.3s}
+
+/* ── HERO ── */
+.hero{padding:140px 0 100px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:900px;height:900px;background:radial-gradient(circle,rgba(102,126,234,.12) 0%,transparent 70%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,rgba(102,126,234,.1),rgba(118,75,162,.1));color:var(--purple-3);font-size:.85rem;font-weight:600;padding:6px 16px;border-radius:20px;margin-bottom:24px;border:1px solid rgba(102,126,234,.2)}
+.hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hero h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:800;line-height:1.2;color:var(--gray-900);margin-bottom:20px;letter-spacing:-.02em}
+.hero h1 .gradient{background:linear-gradient(135deg,var(--purple-1),var(--purple-2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:clamp(1rem,2vw,1.2rem);color:var(--gray-600);max-width:640px;margin:0 auto 40px}
+.hero-buttons{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;font-size:1rem;font-weight:600;padding:14px 32px;border-radius:10px;cursor:pointer;border:none;transition:transform .2s,box-shadow .2s}
+.btn-primary{background:linear-gradient(135deg,var(--purple-1),var(--purple-2));color:#fff;box-shadow:0 4px 14px rgba(102,126,234,.35)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(102,126,234,.45)}
+.btn-secondary{background:#fff;color:var(--gray-700);border:1.5px solid var(--gray-200)}
+.btn-secondary:hover{border-color:var(--purple-1);color:var(--purple-1);transform:translateY(-2px)}
+.hero-stats{display:flex;justify-content:center;gap:48px;margin-top:64px;flex-wrap:wrap}
+.hero-stat{text-align:center}
+.hero-stat .num{font-size:1.8rem;font-weight:800;color:var(--gray-900)}
+.hero-stat .label{font-size:.85rem;color:var(--gray-600);margin-top:2px}
+.hero-preview{margin-top:64px;position:relative}
+.hero-preview .mockup{max-width:800px;margin:0 auto;border-radius:var(--radius-lg);box-shadow:var(--shadow-xl);border:1px solid var(--gray-200);overflow:hidden;background:var(--gray-100);aspect-ratio:16/9;display:flex;align-items:center;justify-content:center}
+.mockup-content{padding:32px;text-align:left;width:100%}
+.mockup-bar{display:flex;gap:8px;margin-bottom:20px}
+.mockup-bar span{width:12px;height:12px;border-radius:50%}
+.mockup-bar span:nth-child(1){background:#ef4444}
+.mockup-bar span:nth-child(2){background:#f59e0b}
+.mockup-bar span:nth-child(3){background:#10b981}
+.mockup-card{background:#fff;border-radius:10px;padding:20px;box-shadow:var(--shadow-sm);border:1px solid var(--gray-200)}
+.mockup-card .tag{display:inline-block;font-size:.75rem;font-weight:600;padding:3px 10px;border-radius:4px;margin-bottom:10px}
+.tag-green{background:rgba(16,185,129,.1);color:var(--green)}
+.tag-red{background:rgba(239,68,68,.1);color:var(--red)}
+.mockup-card h4{font-size:.95rem;font-weight:700;margin-bottom:8px;color:var(--gray-900)}
+.mockup-card p{font-size:.8rem;color:var(--gray-600);line-height:1.5}
+.mockup-row{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
+.mockup-row .chip{font-size:.75rem;padding:4px 10px;border-radius:6px;background:var(--gray-100);color:var(--gray-700);font-weight:500}
+
+/* ── SUPPORTED SITES ── */
+.sites{padding:80px 0;background:var(--gray-50)}
+.section-header{text-align:center;margin-bottom:56px}
+.section-header .overline{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--purple-3);margin-bottom:8px}
+.section-header h2{font-size:clamp(1.6rem,3vw,2.2rem);font-weight:800;color:var(--gray-900);margin-bottom:12px}
+.section-header p{font-size:1.05rem;color:var(--gray-600);max-width:560px;margin:0 auto}
+.sites-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:16px}
+.site-chip{display:flex;align-items:center;gap:8px;background:#fff;padding:10px 20px;border-radius:10px;border:1px solid var(--gray-200);font-size:.9rem;font-weight:500;color:var(--gray-700);box-shadow:var(--shadow-sm);transition:transform .2s,box-shadow .2s}
+.site-chip:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.site-chip .emoji{font-size:1.2rem}
+
+/* ── FEATURES ── */
+.features{padding:100px 0}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.feature-card{padding:32px;border-radius:var(--radius-lg);border:1px solid var(--gray-200);transition:transform .25s,box-shadow .25s;background:#fff}
+.feature-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.feature-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:20px}
+.fi-purple{background:linear-gradient(135deg,rgba(102,126,234,.12),rgba(118,75,162,.12))}
+.fi-green{background:rgba(16,185,129,.1)}
+.fi-amber{background:rgba(245,158,11,.1)}
+.fi-red{background:rgba(239,68,68,.1)}
+.fi-blue{background:rgba(59,130,246,.1)}
+.fi-teal{background:rgba(20,184,166,.1)}
+.feature-card h3{font-size:1.1rem;font-weight:700;color:var(--gray-900);margin-bottom:10px}
+.feature-card p{font-size:.92rem;color:var(--gray-600);line-height:1.6}
+
+/* ── HOW IT WORKS ── */
+.how{padding:100px 0;background:linear-gradient(180deg,var(--gray-50) 0%,#fff 100%)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;position:relative}
+.steps::before{content:'';position:absolute;top:44px;left:16.6%;right:16.6%;height:2px;background:linear-gradient(90deg,var(--purple-1),var(--purple-2));z-index:0}
+.step{text-align:center;position:relative;z-index:1}
+.step-num{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--purple-1),var(--purple-2));color:#fff;font-size:1.4rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:0 4px 14px rgba(102,126,234,.3)}
+.step h3{font-size:1.1rem;font-weight:700;color:var(--gray-900);margin-bottom:10px}
+.step p{font-size:.92rem;color:var(--gray-600);max-width:280px;margin:0 auto}
+
+/* ── PRICING ── */
+.pricing{padding:100px 0}
+.pricing-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:28px;max-width:800px;margin:0 auto}
+.price-card{padding:40px 32px;border-radius:var(--radius-lg);border:1.5px solid var(--gray-200);background:#fff;position:relative;transition:transform .25s,box-shadow .25s}
+.price-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.price-card.popular{border-color:var(--purple-1);box-shadow:0 0 0 1px var(--purple-1),var(--shadow-lg)}
+.price-card.popular::before{content:'推荐';position:absolute;top:-12px;left:32px;background:linear-gradient(135deg,var(--purple-1),var(--purple-2));color:#fff;font-size:.75rem;font-weight:700;padding:4px 14px;border-radius:6px}
+.price-card h3{font-size:1.1rem;font-weight:700;color:var(--gray-900);margin-bottom:8px}
+.price-card .price{font-size:2.6rem;font-weight:800;color:var(--gray-900);margin-bottom:4px}
+.price-card .price span{font-size:1rem;font-weight:500;color:var(--gray-600)}
+.price-card .price-note{font-size:.85rem;color:var(--gray-600);margin-bottom:28px}
+.price-card ul{list-style:none;margin-bottom:32px}
+.price-card li{padding:8px 0;font-size:.92rem;color:var(--gray-700);display:flex;align-items:flex-start;gap:10px}
+.price-card li .check{color:var(--green);font-weight:700;flex-shrink:0;margin-top:2px}
+.btn-block{width:100%;justify-content:center}
+
+/* ── FAQ ── */
+.faq{padding:100px 0;background:var(--gray-50)}
+.faq-list{max-width:720px;margin:0 auto}
+.faq-item{background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;transition:box-shadow .25s}
+.faq-item:hover{box-shadow:var(--shadow)}
+.faq-q{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;cursor:pointer;font-weight:600;font-size:.98rem;color:var(--gray-900);user-select:none}
+.faq-q .arrow{font-size:.75rem;color:var(--gray-600);transition:transform .3s;flex-shrink:0}
+.faq-item.open .arrow{transform:rotate(180deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .35s ease,padding .35s ease;padding:0 24px}
+.faq-item.open .faq-a{max-height:300px;padding:0 24px 20px}
+.faq-a p{font-size:.92rem;color:var(--gray-600);line-height:1.7}
+
+/* ── CTA BANNER ── */
+.cta-banner{padding:100px 0}
+.cta-box{background:linear-gradient(135deg,var(--purple-1),var(--purple-2));border-radius:var(--radius-lg);padding:64px 40px;text-align:center;color:#fff;position:relative;overflow:hidden}
+.cta-box::before{content:'';position:absolute;top:-60%;right:-10%;width:500px;height:500px;background:radial-gradient(circle,rgba(255,255,255,.1),transparent 70%);pointer-events:none}
+.cta-box h2{font-size:clamp(1.6rem,3vw,2.2rem);font-weight:800;margin-bottom:14px}
+.cta-box p{font-size:1.05rem;opacity:.9;margin-bottom:32px;max-width:480px;margin-left:auto;margin-right:auto}
+.btn-white{background:#fff;color:var(--purple-2);box-shadow:var(--shadow)}
+.btn-white:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+
+/* ── FOOTER ── */
+.footer{padding:48px 0 32px;border-top:1px solid var(--gray-200)}
+.footer-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+.footer-brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:1rem;color:var(--gray-900)}
+.footer-brand .icon{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,var(--purple-1),var(--purple-2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}
+.footer-links{display:flex;gap:24px;font-size:.85rem;color:var(--gray-600)}
+.footer-links a:hover{color:var(--purple-1)}
+.footer-copy{width:100%;text-align:center;font-size:.8rem;color:var(--gray-600);margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-200)}
+
+/* ── MOBILE ── */
+@media(max-width:768px){
+  .nav-links{display:none}
+  .hamburger{display:flex}
+  .nav-links.open{display:flex;flex-direction:column;position:absolute;top:64px;left:0;right:0;background:#fff;padding:20px 24px;border-bottom:1px solid var(--gray-200);gap:16px;box-shadow:var(--shadow)}
+  .hero{padding:110px 0 70px}
+  .hero-stats{gap:28px}
+  .features-grid{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr;gap:40px}
+  .steps::before{display:none}
+  .pricing-grid{grid-template-columns:1fr}
+  .sites-grid{gap:10px}
+  .cta-box{padding:40px 24px}
+  .footer-inner{flex-direction:column;text-align:center}
+}
+@media(max-width:480px){
+  .hero-buttons{flex-direction:column;align-items:center}
+  .btn{width:100%;justify-content:center}
+}
+
+/* ── ANIMATIONS ── */
+.fade-up{opacity:0;transform:translateY(30px);transition:opacity .6s ease,transform .6s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="nav">
+  <div class="container nav-inner">
+    <a href="#" class="nav-brand">
+      <div class="icon">📊</div>
+      AI财经助手
+    </a>
+    <div class="nav-links" id="navLinks">
+      <a href="#features">功能</a>
+      <a href="#how">使用方法</a>
+      <a href="#pricing">价格</a>
+      <a href="#faq">常见问题</a>
+      <a href="chrome://extensions" class="nav-cta">立即安装</a>
+    </div>
+    <div class="hamburger" id="hamburger" onclick="document.getElementById('navLinks').classList.toggle('open')">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge"><span class="dot"></span> Chrome 扩展 · 全新发布</div>
+    <h1>一键 AI 分析<br><span class="gradient">读懂每一条财经新闻</span></h1>
+    <p>在东方财富、新浪财经、雪球等 9 大财经网站上，点击即可获取 AI 情绪分析、关联个股、投资视角与风险提示。</p>
+    <div class="hero-buttons">
+      <a href="chrome://extensions" class="btn btn-primary">⬇️ 免费安装到 Chrome</a>
+      <a href="#how" class="btn btn-secondary">🎬 了解使用方法</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num">9</div><div class="label">支持财经网站</div></div>
+      <div class="hero-stat"><div class="num">¥0.001</div><div class="label">每次分析成本</div></div>
+      <div class="hero-stat"><div class="num">5次/天</div><div class="label">免费额度</div></div>
+      <div class="hero-stat"><div class="num">0</div><div class="label">数据收集</div></div>
+    </div>
+    <div class="hero-preview fade-up">
+      <div class="mockup">
+        <div class="mockup-content">
+          <div class="mockup-bar"><span></span><span></span><span></span></div>
+          <div class="mockup-card">
+            <span class="tag tag-green">📈 看好</span>
+            <h4>AI 分析结果</h4>
+            <p>该文章对新能源汽车行业持积极态度，比亚迪、宁德时代等头部企业受益于政策利好，预计Q3业绩将超市场预期...</p>
+            <div class="mockup-row">
+              <span class="chip">比亚迪 · 正面影响</span>
+              <span class="chip">宁德时代 · 正面影响</span>
+              <span class="chip">蔚来 · 中性影响</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SUPPORTED SITES -->
+<section class="sites">
+  <div class="container">
+    <div class="section-header">
+      <div class="overline">全面覆盖</div>
+      <h2>支持 9 大主流财经平台</h2>
+      <p>在哪里看新闻，就在哪里分析新闻</p>
+    </div>
+    <div class="sites-grid">
+      <div class="site-chip"><span class="emoji">📈</span> 东方财富</div>
+      <div class="site-chip"><span class="emoji">🌐</span> 新浪财经</div>
+      <div class="site-chip"><span class="emoji">❄️</span> 雪球</div>
+      <div class="site-chip"><span class="emoji">📄</span> 同花顺</div>
+      <div class="site-chip"><span class="emoji">🔔</span> 腾讯财经</div>
+      <div class="site-chip"><span class="emoji">💰</span> 网易财经</div>
+      <div class="site-chip"><span class="emoji">📰</span> 证券时报</div>
+      <div class="site-chip"><span class="emoji">🏦</span> 第一财经</div>
+      <div class="site-chip"><span class="emoji">📊</span> 和讯</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="section-header">
+      <div class="overline">核心功能</div>
+      <h2>AI 驱动的全方位财经分析</h2>
+      <p>借助 DeepSeek 大模型，深度理解每一条财经资讯</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card fade-up">
+        <div class="feature-icon fi-purple">🧠</div>
+        <h3>一键 AI 智能分析</h3>
+        <p>阅读财经文章时，点击扩展图标即可获得 DeepSeek 大模型的深度分析，无需切换页面。</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon fi-green">📈</div>
+        <h3>情绪分析</h3>
+        <p>自动判断新闻对市场的情绪倾向——看好、看空或中性，帮你快速把握消息面影响。</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon fi-amber">🏷️</div>
+        <h3>关联个股与影响标签</h3>
+        <p>智能识别文中提及的上市公司，并标注每只股票受影响的正面/负面/中性方向。</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon fi-blue">💡</div>
+        <h3>投资视角解读</h3>
+        <p>从专业投资者角度提炼新闻要点，提供行业趋势、估值变化、竞争格局等深度解读。</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon fi-red">⚠️</div>
+        <h3>风险提示</h3>
+        <p>自动识别潜在利空因素和风险信号，帮助你在投资决策前全面评估风险。</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon fi-teal">🔒</div>
+        <h3>隐私至上</h3>
+        <p>使用你自己的 API Key，数据仅在你的浏览器中处理，我们绝不收集任何分析数据。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="container">
+    <div class="section-header">
+      <div class="overline">简单三步</div>
+      <h2>使用方法</h2>
+      <p>从安装到获取分析结果，只需三步</p>
+    </div>
+    <div class="steps">
+      <div class="step fade-up">
+        <div class="step-num">1</div>
+        <h3>安装扩展</h3>
+        <p>从 Chrome 应用商店一键安装 AI财经助手，同时获取 DeepSeek API Key（免费额度即可开始）。</p>
+      </div>
+      <div class="step fade-up">
+        <div class="step-num">2</div>
+        <h3>浏览财经新闻</h3>
+        <p>打开东方财富、雪球等任意支持网站的新闻文章页面，正常阅读即可。</p>
+      </div>
+      <div class="step fade-up">
+        <div class="step-num">3</div>
+        <h3>点击分析</h3>
+        <p>点击扩展图标，AI 将在数秒内返回情绪判断、关联个股、投资视角和风险提示。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="container">
+    <div class="section-header">
+      <div class="overline">灵活定价</div>
+      <h2>选择适合你的方案</h2>
+      <p>免费开始，随时升级。AI 分析成本仅约 ¥0.001/次</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card fade-up">
+        <h3>🆓 免费版</h3>
+        <div class="price">¥0<span> /永久</span></div>
+        <div class="price-note">适合轻度使用的投资者</div>
+        <ul>
+          <li><span class="check">✓</span> 每天 5 次 AI 分析</li>
+          <li><span class="check">✓</span> 支持 9 大财经网站</li>
+          <li><span class="check">✓</span> 情绪分析 + 关联个股</li>
+          <li><span class="check">✓</span> 投资视角与风险提示</li>
+          <li><span class="check">✓</span> 使用自己的 API Key</li>
+        </ul>
+        <a href="chrome://extensions" class="btn btn-secondary btn-block">免费安装</a>
+      </div>
+      <div class="price-card popular fade-up">
+        <h3>⭐ Pro 专业版</h3>
+        <div class="price">¥9.9<span> /月</span></div>
+        <div class="price-note">适合活跃投资者与交易员</div>
+        <ul>
+          <li><span class="check">✓</span> 每日无限次 AI 分析</li>
+          <li><span class="check">✓</span> 支持 9 大财经网站</li>
+          <li><span class="check">✓</span> 情绪分析 + 关联个股</li>
+          <li><span class="check">✓</span> 投资视角与风险提示</li>
+          <li><span class="check">✓</span> 使用自己的 API Key</li>
+          <li><span class="check">✓</span> 历史分析记录</li>
+          <li><span class="check">✓</span> 优先技术支持</li>
+        </ul>
+        <a href="chrome://extensions" class="btn btn-primary btn-block">升级 Pro</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq" id="faq">
+  <div class="container">
+    <div class="section-header">
+      <div class="overline">常见问题</div>
+      <h2>FAQ</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">AI财经助手是如何工作的？<span class="arrow">▼</span></div>
+        <div class="faq-a"><p>AI财经助手通过 DeepSeek 大语言模型分析网页上的财经文章内容。当你点击扩展图标时，它会提取当前页面的文章文本，发送给 AI 模型进行分析，并在数秒内返回结构化的分析结果，包括情绪判断、关联个股、投资视角和风险提示。</p></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">我的数据安全吗？<span class="arrow">▼</span></div>
+        <div class="faq-a"><p>绝对安全。AI财经助手采用"自带密钥"模式——你使用自己的 DeepSeek API Key，所有数据仅在你的浏览器与 DeepSeek API 之间传输。我们不会收集、存储或处理任何分析数据。扩展代码开源透明，可随时审查。</p></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">如何获取 DeepSeek API Key？<span class="arrow">▼</span></div>
+        <div class="faq-a"><p>访问 DeepSeek 官方平台（platform.deepseek.com），注册账号后在 API 管理页面创建密钥。DeepSeek 提供免费额度，新用户即可开始使用。每次分析成本仅约 ¥0.001，非常经济实惠。</p></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">免费版和 Pro 版有什么区别？<span class="arrow">▼</span></div>
+        <div class="faq-a"><p>免费版每天可使用 5 次 AI 分析，适合偶尔查看的投资者。Pro 版（¥9.9/月）提供无限次分析、历史分析记录和优先技术支持，适合每天需要阅读大量财经资讯的活跃投资者和交易员。</p></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">支持哪些浏览器和网站？<span class="arrow">▼</span></div>
+        <div class="faq-a"><p>目前支持 Chrome 浏览器（包括 Edge、Brave 等 Chromium 内核浏览器）。支持东方财富、新浪财经、雪球、同花顺、腾讯财经、网易财经、证券时报、第一财经、和讯等 9 大主流财经平台，并持续增加中。</p></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">分析结果准确吗？可以做为投资建议吗？<span class="arrow">▼</span></div>
+        <div class="faq-a"><p>AI 分析基于大语言模型对文本的理解，能够高效提炼信息和判断情绪倾向，但仅供参考和学习使用。AI 分析结果不构成任何投资建议，投资决策请结合多方信息并自行判断风险。股市有风险，投资需谨慎。</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<section class="cta-banner">
+  <div class="container">
+    <div class="cta-box fade-up">
+      <h2>开始用 AI 读懂财经新闻</h2>
+      <p>免费安装，使用自己的 API Key，每次分析仅需约 ¥0.001</p>
+      <a href="chrome://extensions" class="btn btn-white">⬇️ 免费安装 AI财经助手</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="icon">📊</div>
+        AI财经助手
+      </div>
+      <div class="footer-links">
+        <a href="#features">功能</a>
+        <a href="#pricing">价格</a>
+        <a href="#faq">常见问题</a>
+        <a href="chrome://extensions">安装</a>
+      </div>
+    </div>
+    <div class="footer-copy">© 2025 AI财经助手 · 仅供学习参考，不构成投资建议 · 股市有风险，投资需谨慎</div>
+  </div>
+</footer>
+
+<script>
+// Navbar scroll effect
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// FAQ toggle
+function toggleFaq(el) {
+  const item = el.parentElement;
+  const wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+  if (!wasOpen) item.classList.add('open');
+}
+
+// Scroll animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+// Close mobile nav on link click
+document.querySelectorAll('#navLinks a').forEach(a => {
+  a.addEventListener('click', () => {
+    document.getElementById('navLinks').classList.remove('open');
+  });
+});
+</script>
+</body>
+</html>

@@ -26,6 +26,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     saveSettings(message.data).then(sendResponse);
     return true;
   }
+  if (message.type === 'getHistory') {
+    getHistory().then(sendResponse);
+    return true;
+  }
+  if (message.type === 'clearHistory') {
+    clearHistory().then(sendResponse);
+    return true;
+  }
 });
 
 // 获取今日用量
@@ -85,6 +93,30 @@ async function getSettings() {
 async function saveSettings(data) {
   await chrome.storage.local.set({ settings: data });
   return { success: true };
+}
+
+// 获取分析历史
+async function getHistory() {
+  const result = await chrome.storage.local.get(['analysisHistory']);
+  return { history: result.analysisHistory || [] };
+}
+
+// 清除分析历史
+async function clearHistory() {
+  await chrome.storage.local.set({ analysisHistory: [] });
+  return { success: true };
+}
+
+// 保存分析结果到历史
+async function saveToHistory(entry) {
+  const result = await chrome.storage.local.get(['analysisHistory']);
+  const history = result.analysisHistory || [];
+  history.unshift(entry); // 最新的排在前面
+  // 最多保留100条历史
+  if (history.length > 100) {
+    history.length = 100;
+  }
+  await chrome.storage.local.set({ analysisHistory: history });
 }
 
 // 核心：调用LLM分析财经新闻
@@ -184,6 +216,16 @@ async function handleAnalyze(data) {
     // 增加用量
     await incrementUsage();
     const updatedUsage = await getUsage();
+    
+    // 保存到分析历史
+    await saveToHistory({
+      id: Date.now(),
+      title: data.title || '未命名文章',
+      url: data.url || '',
+      analysis: analysis,
+      model: settings.model || 'deepseek-chat',
+      timestamp: new Date().toISOString()
+    });
     
     return {
       success: true,
